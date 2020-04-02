@@ -26,6 +26,7 @@ cf https://prometheus.io/docs/alerting/configuration/#webhook_config
 		"annotations": <object>,
 		"startsAt": "<rfc3339>",
 		"endsAt": "<rfc3339>"
+		"status": "<resolved|firing>
 	  },
 	  ...
 	]
@@ -36,6 +37,7 @@ type PrometheusAlertDetail struct {
 	Annotations map[string]string `json:"annotations"`
 	StartAt     string            `json:"startsAt"`
 	EndsAt      string            `json:"endsAt"`
+	Status      string            `json:"status"`
 }
 
 type PrometheusAlert struct {
@@ -68,12 +70,6 @@ func SubmitAlert(c *gin.Context, config *PrometheusCachetConfig) {
 	var alerts PrometheusAlert
 	if err := c.ShouldBindJSON(&alerts); err == nil {
 		// talk to CachetHQ
-		status := 1 // "resolved"
-		componentStatus := 1
-		if alerts.Status == "firing" {
-			status = 4
-			componentStatus = 4
-		}
 
 		list, err := config.Cachet.ListComponents()
 		if err != nil {
@@ -87,6 +83,12 @@ func SubmitAlert(c *gin.Context, config *PrometheusCachetConfig) {
 		// prometheus can send 2 times the same alerts info in one call
 		alreadyFired := make(map[int]int)
 		for _, alert := range alerts.Alerts {
+			status := 1 // "resolved"
+			componentStatus := 1
+			if alert.Status == "firing" {
+				status = 4
+				componentStatus = 4
+			}
 			// fire something
 			if componentID, ok := list[alert.Labels[config.LabelName]]; ok {
 				if alreadyFired[componentID] == 0 {
