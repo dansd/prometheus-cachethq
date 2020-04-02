@@ -7,7 +7,6 @@ WORKDIR /app
 COPY . .
 RUN set -x && \ 
     go mod download && \
-    go test ./... && \
     CGO_ENABLED=0 GOOS=linux go build -a -o prometheus-cachethq
 
 
